@@ -3,19 +3,16 @@
 import { useRouter } from 'next/navigation';
 import { Button, Card, Form, Input, message, Typography } from 'antd';
 
-import { login } from '@/shared/api/auth';
-import { setAccessToken } from '@/shared/lib/token';
+import { useAuth } from '@/shared/providers/AuthProvider';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
 
   const onFinish = async (values: { email: string; password: string }) => {
     try {
-      const data = await login(values);
-
-      setAccessToken(data.accessToken);
+      await login(values);
       message.success('Вход выполнен');
-
       router.push('/profile');
     } catch {
       message.error('Неверный email или пароль');
@@ -23,8 +20,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex justify-center">
-      <Card className="w-full max-w-md">
+    <div className="flex min-h-[70vh] items-center justify-center">
+      <Card className="w-full max-w-md shadow-sm">
         <Typography.Title level={3}>Вход</Typography.Title>
 
         <Form layout="vertical" onFinish={onFinish}>

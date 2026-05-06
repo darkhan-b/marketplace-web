@@ -27,7 +27,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex justify-center">
+    <div className="flex min-h-[70vh] items-center justify-center">
       <Card className="w-full max-w-md">
         <Typography.Title level={3}>Регистрация</Typography.Title>
 
