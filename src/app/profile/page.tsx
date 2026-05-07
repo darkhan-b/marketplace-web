@@ -1,21 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Avatar,
   Button,
   Card,
   Descriptions,
+  Empty,
   Form,
+  Image,
   Input,
+  List,
   message,
   Spin,
   Statistic,
+  Tabs,
   Tag,
   Typography,
 } from 'antd';
 import {
   EditOutlined,
+  HeartOutlined,
   MailOutlined,
   ShoppingCartOutlined,
   StarOutlined,
@@ -23,30 +30,32 @@ import {
 } from '@ant-design/icons';
 
 import { getMe, updateMe } from '@/shared/api/users';
+import { removeAccessToken } from '@/shared/lib/token';
 import type { User } from '@/shared/types/user';
 
-const demoUser: User = {
-  id: 0,
-  email: 'demo@mail.com',
-  name: 'Demo User',
-  role: 'USER',
-  createdAt: new Date().toISOString(),
-};
-
 export default function ProfilePage() {
-  const [user, setUser] = useState<User | null>(demoUser);
+  const router = useRouter();
+
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isDemoMode, setIsDemoMode] = useState(false);
+
+  const products = user?.products || [];
+  const cartItems = user?.cartItems || [];
+  const favorites = user?.favorites || [];
+
+  const cartTotal = useMemo(() => {
+    return cartItems.reduce((sum, item) => {
+      return sum + Number(item.product.price) * item.quantity;
+    }, 0);
+  }, [cartItems]);
 
   const loadProfile = async () => {
     try {
       const data = await getMe();
-
       setUser(data);
-      setIsDemoMode(false);
     } catch {
-      setUser(demoUser);
-      setIsDemoMode(true);
+      removeAccessToken();
+      router.push('/login');
     } finally {
       setLoading(false);
     }
@@ -57,16 +66,6 @@ export default function ProfilePage() {
   }, []);
 
   const onFinish = async (values: { name?: string }) => {
-    if (isDemoMode) {
-      setUser((prev) => ({
-        ...(prev || demoUser),
-        name: values.name || demoUser.name,
-      }));
-
-      message.info('Демо-режим: изменения сохранены только на экране');
-      return;
-    }
-
     try {
       const updatedUser = await updateMe(values);
 
@@ -102,16 +101,22 @@ export default function ProfilePage() {
               />
 
               <div>
-                <div className="mb-2 flex items-center gap-2">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
                   <Typography.Title level={2} className="!m-0">
                     {user.name || 'Без имени'}
                   </Typography.Title>
 
-                  <Tag color={user.role === 'ADMIN' ? 'red' : user.role === 'SELLER' ? 'blue' : 'green'}>
+                  <Tag
+                    color={
+                      user.role === 'ADMIN'
+                        ? 'red'
+                        : user.role === 'SELLER'
+                          ? 'blue'
+                          : 'green'
+                    }
+                  >
                     {user.role}
                   </Tag>
-
-                  {isDemoMode && <Tag color="orange">DEMO</Tag>}
                 </div>
 
                 <div className="flex items-center gap-2 text-slate-500">
@@ -128,21 +133,37 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card className="rounded-2xl shadow-sm">
           <Statistic
             title="Мои товары"
-            value={0}
+            value={products.length}
             prefix={<ShoppingCartOutlined />}
           />
         </Card>
 
         <Card className="rounded-2xl shadow-sm">
-          <Statistic title="В корзине" value={0} prefix={<ShoppingCartOutlined />} />
+          <Statistic
+            title="В корзине"
+            value={cartItems.length}
+            prefix={<ShoppingCartOutlined />}
+          />
         </Card>
 
         <Card className="rounded-2xl shadow-sm">
-          <Statistic title="Избранное" value={0} prefix={<StarOutlined />} />
+          <Statistic
+            title="Избранное"
+            value={favorites.length}
+            prefix={<StarOutlined />}
+          />
+        </Card>
+
+        <Card className="rounded-2xl shadow-sm">
+          <Statistic
+            title="Сумма корзины"
+            value={cartTotal}
+            suffix="₸"
+          />
         </Card>
       </div>
 
@@ -183,6 +204,141 @@ export default function ProfilePage() {
           </Form>
         </Card>
       </div>
+
+      <Card className="rounded-3xl shadow-sm">
+        <Tabs
+          items={[
+            {
+              key: 'cart',
+              label: `Корзина (${cartItems.length})`,
+              children:
+                cartItems.length === 0 ? (
+                  <Empty description="Корзина пустая" />
+                ) : (
+                  <List
+                    itemLayout="horizontal"
+                    dataSource={cartItems}
+                    renderItem={(item) => (
+                      <List.Item>
+                        <List.Item.Meta
+                          avatar={
+                            <Image
+                              src={item.product.imageUrl || ''}
+                              alt={item.product.title}
+                              width={72}
+                              height={72}
+                              className="rounded-xl object-cover"
+                              fallback="https://placehold.co/100x100?text=No+Image"
+                            />
+                          }
+                          title={
+                            <Link href={`/products/${item.product.id}`}>
+                              {item.product.title}
+                            </Link>
+                          }
+                          description={
+                            <div>
+                              <div>Количество: {item.quantity}</div>
+                              <strong>
+                                {Number(item.product.price).toLocaleString()} ₸
+                              </strong>
+                            </div>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                  />
+                ),
+            },
+            {
+              key: 'favorites',
+              label: `Избранное (${favorites.length})`,
+              children:
+                favorites.length === 0 ? (
+                  <Empty description="Избранных товаров нет" />
+                ) : (
+                  <List
+                    itemLayout="horizontal"
+                    dataSource={favorites}
+                    renderItem={(item) => (
+                      <List.Item>
+                        <List.Item.Meta
+                          avatar={
+                            <Image
+                              src={item.product.imageUrl || ''}
+                              alt={item.product.title}
+                              width={72}
+                              height={72}
+                              className="rounded-xl object-cover"
+                              fallback="https://placehold.co/100x100?text=No+Image"
+                            />
+                          }
+                          title={
+                            <div className="flex items-center gap-2">
+                              <HeartOutlined className="text-rose-500" />
+                              <Link href={`/products/${item.product.id}`}>
+                                {item.product.title}
+                              </Link>
+                            </div>
+                          }
+                          description={
+                            <div>
+                              {item.product.category && (
+                                <Tag>{item.product.category.name}</Tag>
+                              )}
+                              <strong>
+                                {Number(item.product.price).toLocaleString()} ₸
+                              </strong>
+                            </div>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                  />
+                ),
+            },
+            {
+              key: 'products',
+              label: `Мои товары (${products.length})`,
+              children:
+                products.length === 0 ? (
+                  <Empty description="Вы пока не добавили товары" />
+                ) : (
+                  <List
+                    itemLayout="horizontal"
+                    dataSource={products}
+                    renderItem={(product) => (
+                      <List.Item>
+                        <List.Item.Meta
+                          avatar={
+                            <Image
+                              src={product.imageUrl || ''}
+                              alt={product.title}
+                              width={72}
+                              height={72}
+                              className="rounded-xl object-cover"
+                              fallback="https://placehold.co/100x100?text=No+Image"
+                            />
+                          }
+                          title={
+                            <Link href={`/products/${product.id}`}>
+                              {product.title}
+                            </Link>
+                          }
+                          description={
+                            <strong>
+                              {Number(product.price).toLocaleString()} ₸
+                            </strong>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                  />
+                ),
+            },
+          ]}
+        />
+      </Card>
     </div>
   );
 }

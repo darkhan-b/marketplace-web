@@ -1,11 +1,11 @@
-import axios from 'axios';
+import axios from "axios";
 
-import { getAccessToken } from '../lib/token';
+import { getAccessToken } from "../lib/token";
 
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
+  withCredentials: true,
 });
-
 api.interceptors.request.use((config) => {
   const token = getAccessToken();
 

@@ -9,13 +9,8 @@ import {
   useState,
 } from 'react';
 
-import { login as loginApi, register as registerApi } from '@/shared/api/auth';
+import { login as loginApi, logout as logoutApi, register as registerApi } from '@/shared/api/auth';
 import { getMe } from '@/shared/api/users';
-import {
-  getAccessToken,
-  removeAccessToken,
-  setAccessToken,
-} from '@/shared/lib/token';
 import type { User } from '@/shared/types/user';
 
 interface LoginBody {
@@ -31,12 +26,11 @@ interface RegisterBody {
 
 interface AuthContextValue {
   user: User | null;
-  token: string | null;
   loading: boolean;
   isAuth: boolean;
   login: (body: LoginBody) => Promise<void>;
   register: (body: RegisterBody) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refetchMe: () => Promise<void>;
 }
 
@@ -44,19 +38,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setTokenState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const saveToken = (accessToken: string) => {
-    setAccessToken(accessToken);
-    setTokenState(accessToken);
-  };
-
-  const clearAuth = () => {
-    removeAccessToken();
-    setTokenState(null);
-    setUser(null);
-  };
 
   const refetchMe = async () => {
     const me = await getMe();
@@ -65,19 +47,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const init = async () => {
-      const storedToken = getAccessToken();
-
-      if (!storedToken) {
-        setLoading(false);
-        return;
-      }
-
       try {
-        setTokenState(storedToken);
         const me = await getMe();
         setUser(me);
       } catch {
-        clearAuth();
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -87,35 +61,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (body: LoginBody) => {
-    const data = await loginApi(body);
-
-    saveToken(data.accessToken);
-    setUser(data.user);
+    const user = await loginApi(body);
+    setUser(user);
   };
 
   const register = async (body: RegisterBody) => {
-    const data = await registerApi(body);
-
-    saveToken(data.accessToken);
-    setUser(data.user);
+    const user = await registerApi(body);
+    setUser(user);
   };
 
-  const logout = () => {
-    clearAuth();
+  const logout = async () => {
+    await logoutApi();
+    setUser(null);
   };
 
   const value = useMemo(
     () => ({
       user,
-      token,
       loading,
-      isAuth: Boolean(user && token),
+      isAuth: Boolean(user),
       login,
       register,
       logout,
       refetchMe,
     }),
-    [user, token, loading],
+    [user, loading],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

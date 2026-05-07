@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   HeartOutlined,
   HomeOutlined,
@@ -9,16 +9,16 @@ import {
   LogoutOutlined,
   ShoppingCartOutlined,
   UserOutlined,
-} from '@ant-design/icons';
-import { Button } from 'antd';
+} from "@ant-design/icons";
+import { Button } from "antd";
 
-import { useAuth } from '../providers/AuthProvider';
+import { useAuth } from "../providers/AuthProvider";
 
 const navItems = [
-  { href: '/products', label: 'Товары', icon: <HomeOutlined /> },
-  { href: '/cart', label: 'Корзина', icon: <ShoppingCartOutlined /> },
-  { href: '/favorites', label: 'Избранное', icon: <HeartOutlined /> },
-  { href: '/profile', label: 'Профиль', icon: <UserOutlined /> },
+  { href: "/products", label: "Товары", icon: <HomeOutlined /> },
+  { href: "/cart", label: "Корзина", icon: <ShoppingCartOutlined /> },
+  { href: "/favorites", label: "Избранное", icon: <HeartOutlined /> },
+  { href: "/profile", label: "Профиль", icon: <UserOutlined /> },
 ];
 
 export const AppHeader = () => {
@@ -26,9 +26,9 @@ export const AppHeader = () => {
   const pathname = usePathname();
   const { isAuth, logout, user } = useAuth();
 
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
   };
 
   return (
@@ -58,11 +58,11 @@ export const AppHeader = () => {
                 key={item.href}
                 href={item.href}
                 className={[
-                  'flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition',
+                  "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition",
                   active
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-slate-600 hover:bg-white hover:text-slate-900',
-                ].join(' ')}
+                    ? "bg-white text-blue-600 shadow-sm"
+                    : "text-slate-600 hover:bg-white hover:text-slate-900",
+                ].join(" ")}
               >
                 {item.icon}
                 {item.label}
