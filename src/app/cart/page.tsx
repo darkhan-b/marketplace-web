@@ -29,6 +29,7 @@ import {
   removeCartItem,
   updateCartItem,
 } from '@/shared/api/cart';
+import { createOrder } from '@/shared/api/orders';
 import { removeAccessToken } from '@/shared/lib/token';
 import type { Product } from '@/shared/types/product';
 
@@ -147,17 +148,27 @@ export default function CartPage() {
     try {
       setCheckoutLoading(true);
 
-      await clearCart();
+      await createOrder();
 
       setItems([]);
 
       message.success(
         'Заказ успешно оформлен',
       );
-    } catch {
-      message.error(
-        'Не удалось оформить заказ',
-      );
+
+      router.push('/orders');
+    } catch (error: any) {
+      const errorMessage =
+        error?.response?.data?.message;
+
+      if (Array.isArray(errorMessage)) {
+        message.error(errorMessage[0]);
+      } else {
+        message.error(
+          errorMessage ||
+            'Не удалось оформить заказ',
+        );
+      }
     } finally {
       setCheckoutLoading(false);
     }

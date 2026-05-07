@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Avatar,
   Button,
@@ -19,28 +19,51 @@ import {
   Tabs,
   Tag,
   Typography,
-} from 'antd';
+} from "antd";
 import {
   EditOutlined,
   HeartOutlined,
   MailOutlined,
+  ProfileOutlined,
   ShoppingCartOutlined,
+  ShoppingOutlined,
   StarOutlined,
   UserOutlined,
-} from '@ant-design/icons';
+  WalletOutlined,
+} from "@ant-design/icons";
 
-import { getMe, updateMe } from '@/shared/api/users';
-import { removeAccessToken } from '@/shared/lib/token';
-import type { User } from '@/shared/types/user';
+import { getMyOrders } from "@/shared/api/orders";
+import { getMe, updateMe } from "@/shared/api/users";
+import { removeAccessToken } from "@/shared/lib/token";
+import type { Product } from "@/shared/types/product";
+import type { User } from "@/shared/types/user";
+import { getRoleColor, getRoleLabel } from "@/shared/lib/role";
+
+interface OrderItem {
+  id: number;
+  quantity: number;
+  price: string | number;
+  product: Product;
+}
+
+interface Order {
+  id: number;
+  totalPrice: string | number;
+  status: "PENDING" | "PAID" | "CANCELLED";
+  createdAt: string;
+  items: OrderItem[];
+}
 
 export default function ProfilePage() {
   const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   const products = user?.products || [];
   const cartItems = user?.cartItems || [];
+  console.log(cartItems)
   const favorites = user?.favorites || [];
 
   const cartTotal = useMemo(() => {
@@ -49,13 +72,21 @@ export default function ProfilePage() {
     }, 0);
   }, [cartItems]);
 
+  const ordersTotal = useMemo(() => {
+    return orders.reduce((sum, order) => {
+      return sum + Number(order.totalPrice);
+    }, 0);
+  }, [orders]);
+
   const loadProfile = async () => {
     try {
-      const data = await getMe();
-      setUser(data);
+      const [me, myOrders] = await Promise.all([getMe(), getMyOrders()]);
+
+      setUser(me);
+      setOrders(Array.isArray(myOrders) ? myOrders : []);
     } catch {
       removeAccessToken();
-      router.push('/login');
+      router.push("/login");
     } finally {
       setLoading(false);
     }
@@ -70,10 +101,24 @@ export default function ProfilePage() {
       const updatedUser = await updateMe(values);
 
       setUser(updatedUser);
-      message.success('Профиль обновлён');
+      message.success("Профиль обновлён");
     } catch {
-      message.error('Не удалось обновить профиль');
+      message.error("Не удалось обновить профиль");
     }
+  };
+
+  const getOrderStatusColor = (status: Order["status"]) => {
+    if (status === "PAID") return "green";
+    if (status === "CANCELLED") return "red";
+
+    return "blue";
+  };
+
+  const getOrderStatusLabel = (status: Order["status"]) => {
+    if (status === "PAID") return "Оплачен";
+    if (status === "CANCELLED") return "Отменён";
+
+    return "Ожидает";
   };
 
   if (loading) {
@@ -103,25 +148,17 @@ export default function ProfilePage() {
               <div>
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <Typography.Title level={2} className="!m-0">
-                    {user.name || 'Без имени'}
+                    {user.name || "Без имени"}
                   </Typography.Title>
 
-                  <Tag
-                    color={
-                      user.role === 'ADMIN'
-                        ? 'red'
-                        : user.role === 'SELLER'
-                          ? 'blue'
-                          : 'green'
-                    }
-                  >
-                    {user.role}
+                  <Tag color={getRoleColor(user.role)}>
+                    {getRoleLabel(user.role)}
                   </Tag>
                 </div>
 
                 <div className="flex items-center gap-2 text-slate-500">
                   <MailOutlined />
-                  <span>{user.email || 'email не указан'}</span>
+                  <span>{user.email || "email не указан"}</span>
                 </div>
               </div>
             </div>
@@ -133,12 +170,12 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
         <Card className="rounded-2xl shadow-sm">
           <Statistic
             title="Мои товары"
             value={products.length}
-            prefix={<ShoppingCartOutlined />}
+            prefix={<ShoppingOutlined />}
           />
         </Card>
 
@@ -160,10 +197,23 @@ export default function ProfilePage() {
 
         <Card className="rounded-2xl shadow-sm">
           <Statistic
+            title="Заказы"
+            value={orders.length}
+            prefix={<ProfileOutlined />}
+          />
+        </Card>
+
+        <Card className="rounded-2xl shadow-sm">
+          <Statistic
             title="Сумма корзины"
             value={cartTotal}
             suffix="₸"
+            prefix={<ShoppingCartOutlined />}
           />
+
+          <div className="mt-2 text-xs text-slate-500">
+            Товаров: {cartItems.length}
+          </div>
         </Card>
       </div>
 
@@ -175,9 +225,11 @@ export default function ProfilePage() {
             <Descriptions.Item label="ID">{user.id}</Descriptions.Item>
             <Descriptions.Item label="Email">{user.email}</Descriptions.Item>
             <Descriptions.Item label="Имя">
-              {user.name || 'Не указано'}
+              {user.name || "Не указано"}
             </Descriptions.Item>
-            <Descriptions.Item label="Роль">{user.role}</Descriptions.Item>
+            <Descriptions.Item label="Роль">
+              {getRoleLabel(user.role)}
+            </Descriptions.Item>
             <Descriptions.Item label="Дата регистрации">
               {new Date(user.createdAt).toLocaleString()}
             </Descriptions.Item>
@@ -202,6 +254,16 @@ export default function ProfilePage() {
               Сохранить изменения
             </Button>
           </Form>
+
+          <div className="mt-6 rounded-2xl bg-slate-50 p-4">
+            <Typography.Text type="secondary">
+              Сумма текущей корзины:{" "}
+            </Typography.Text>
+
+            <Typography.Text strong>
+              {cartTotal.toLocaleString()} ₸
+            </Typography.Text>
+          </div>
         </Card>
       </div>
 
@@ -209,7 +271,79 @@ export default function ProfilePage() {
         <Tabs
           items={[
             {
-              key: 'cart',
+              key: "orders",
+              label: `Заказы (${orders.length})`,
+              children:
+                orders.length === 0 ? (
+                  <Empty description="Заказов пока нет" />
+                ) : (
+                  <List
+                    itemLayout="vertical"
+                    dataSource={orders}
+                    renderItem={(order) => (
+                      <List.Item>
+                        <Card className="rounded-2xl bg-slate-50">
+                          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div>
+                              <Typography.Title level={5} className="!mb-1">
+                                Заказ #{order.id}
+                              </Typography.Title>
+
+                              <Typography.Text type="secondary">
+                                {new Date(order.createdAt).toLocaleString()}
+                              </Typography.Text>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <Tag color={getOrderStatusColor(order.status)}>
+                                {getOrderStatusLabel(order.status)}
+                              </Tag>
+
+                              <Typography.Text strong>
+                                {Number(order.totalPrice).toLocaleString()} ₸
+                              </Typography.Text>
+                            </div>
+                          </div>
+
+                          <List
+                            size="small"
+                            dataSource={order.items || []}
+                            renderItem={(item) => (
+                              <List.Item>
+                                <List.Item.Meta
+                                  avatar={
+                                    <Image
+                                      src={item.product.imageUrl || ""}
+                                      alt={item.product.title}
+                                      width={56}
+                                      height={56}
+                                      className="rounded-xl object-cover"
+                                      fallback="https://placehold.co/100x100?text=No+Image"
+                                    />
+                                  }
+                                  title={
+                                    <Link href={`/products/${item.product.id}`}>
+                                      {item.product.title}
+                                    </Link>
+                                  }
+                                  description={
+                                    <span>
+                                      {item.quantity} шт. ×{" "}
+                                      {Number(item.price).toLocaleString()} ₸
+                                    </span>
+                                  }
+                                />
+                              </List.Item>
+                            )}
+                          />
+                        </Card>
+                      </List.Item>
+                    )}
+                  />
+                ),
+            },
+            {
+              key: "cart",
               label: `Корзина (${cartItems.length})`,
               children:
                 cartItems.length === 0 ? (
@@ -223,7 +357,7 @@ export default function ProfilePage() {
                         <List.Item.Meta
                           avatar={
                             <Image
-                              src={item.product.imageUrl || ''}
+                              src={item.product.imageUrl || ""}
                               alt={item.product.title}
                               width={72}
                               height={72}
@@ -251,7 +385,7 @@ export default function ProfilePage() {
                 ),
             },
             {
-              key: 'favorites',
+              key: "favorites",
               label: `Избранное (${favorites.length})`,
               children:
                 favorites.length === 0 ? (
@@ -265,7 +399,7 @@ export default function ProfilePage() {
                         <List.Item.Meta
                           avatar={
                             <Image
-                              src={item.product.imageUrl || ''}
+                              src={item.product.imageUrl || ""}
                               alt={item.product.title}
                               width={72}
                               height={72}
@@ -276,6 +410,7 @@ export default function ProfilePage() {
                           title={
                             <div className="flex items-center gap-2">
                               <HeartOutlined className="text-rose-500" />
+
                               <Link href={`/products/${item.product.id}`}>
                                 {item.product.title}
                               </Link>
@@ -286,6 +421,7 @@ export default function ProfilePage() {
                               {item.product.category && (
                                 <Tag>{item.product.category.name}</Tag>
                               )}
+
                               <strong>
                                 {Number(item.product.price).toLocaleString()} ₸
                               </strong>
@@ -298,7 +434,7 @@ export default function ProfilePage() {
                 ),
             },
             {
-              key: 'products',
+              key: "products",
               label: `Мои товары (${products.length})`,
               children:
                 products.length === 0 ? (
@@ -312,7 +448,7 @@ export default function ProfilePage() {
                         <List.Item.Meta
                           avatar={
                             <Image
-                              src={product.imageUrl || ''}
+                              src={product.imageUrl || ""}
                               alt={product.title}
                               width={72}
                               height={72}
