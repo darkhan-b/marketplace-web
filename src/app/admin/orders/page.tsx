@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   Button,
   Card,
@@ -10,24 +10,28 @@ import {
   Spin,
   Tag,
   Typography,
-} from 'antd';
+} from "antd";
 
 import {
   getAllOrders,
   updateOrderStatus,
   type OrderStatus,
-} from '@/shared/api/orders';
+} from "@/shared/api/orders";
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  interface Order {
+    status: "PENDING" | "PAID" | "CANCELLED";
+  }
 
   const loadOrders = async () => {
     try {
       const data = await getAllOrders();
       setOrders(Array.isArray(data) ? data : []);
     } catch {
-      message.error('Нет доступа или ошибка загрузки заказов');
+      message.error("Нет доступа или ошибка загрузки заказов");
     } finally {
       setLoading(false);
     }
@@ -37,16 +41,13 @@ export default function AdminOrdersPage() {
     loadOrders();
   }, []);
 
-  const handleStatusChange = async (
-    orderId: number,
-    status: OrderStatus,
-  ) => {
+  const handleStatusChange = async (orderId: number, status: OrderStatus) => {
     try {
       await updateOrderStatus(orderId, status);
-      message.success('Статус заказа обновлён');
+      message.success("Статус заказа обновлён");
       await loadOrders();
     } catch {
-      message.error('Не удалось обновить статус');
+      message.error("Не удалось обновить статус");
     }
   };
 
@@ -58,12 +59,38 @@ export default function AdminOrdersPage() {
     );
   }
 
+  const getOrderStatusLabel = (status: Order["status"]) => {
+    switch (status) {
+      case "PAID":
+        return "Оплачен";
+
+      case "CANCELLED":
+        return "Отменён";
+
+      case "PENDING":
+      default:
+        return "Ожидает";
+    }
+  };
+
+  const getOrderStatusColor = (status: Order["status"]) => {
+    switch (status) {
+      case "PAID":
+        return "green";
+
+      case "CANCELLED":
+        return "red";
+
+      case "PENDING":
+      default:
+        return "blue";
+    }
+  };
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <Card className="rounded-3xl shadow-sm">
-        <Typography.Title level={2}>
-          Админка: заказы
-        </Typography.Title>
+        <Typography.Title level={2}>Админка: заказы</Typography.Title>
         <Typography.Text type="secondary">
           Здесь администратор может подтверждать или отменять заказы
         </Typography.Text>
@@ -89,18 +116,18 @@ export default function AdminOrdersPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <Tag color="blue">{order.status}</Tag>
+                <Tag color={getOrderStatusColor(order.status)}>
+                  {getOrderStatusLabel(order.status)}
+                </Tag>
 
                 <Select
                   value={order.status}
                   style={{ width: 160 }}
-                  onChange={(value) =>
-                    handleStatusChange(order.id, value)
-                  }
+                  onChange={(value) => handleStatusChange(order.id, value)}
                   options={[
-                    { label: 'PENDING', value: 'PENDING' },
-                    { label: 'PAID', value: 'PAID' },
-                    { label: 'CANCELLED', value: 'CANCELLED' },
+                    { label: "Ожидание", value: "PENDING" },
+                    { label: "Оплачено", value: "PAID" },
+                    { label: "Отклонено", value: "CANCELLED" },
                   ]}
                 />
               </div>
@@ -112,7 +139,7 @@ export default function AdminOrdersPage() {
               <ul className="mt-2 list-disc pl-5">
                 {order.items?.map((item: any) => (
                   <li key={item.id}>
-                    {item.product?.title} — {item.quantity} шт. ×{' '}
+                    {item.product?.title} — {item.quantity} шт. ×{" "}
                     {Number(item.price).toLocaleString()} ₸
                   </li>
                 ))}

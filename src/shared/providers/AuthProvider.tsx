@@ -9,8 +9,16 @@ import {
   useState,
 } from 'react';
 
-import { login as loginApi, logout as logoutApi, register as registerApi } from '@/shared/api/auth';
+import {
+  login as loginApi,
+  logout as logoutApi,
+  register as registerApi,
+} from '@/shared/api/auth';
 import { getMe } from '@/shared/api/users';
+import {
+  removeAccessToken,
+  setAccessToken,
+} from '@/shared/lib/token';
 import type { User } from '@/shared/types/user';
 
 interface LoginBody {
@@ -61,18 +69,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (body: LoginBody) => {
-    const user = await loginApi(body);
-    setUser(user);
+    const data = await loginApi(body);
+
+    setAccessToken(data.accessToken);
+    setUser(data.user);
   };
 
   const register = async (body: RegisterBody) => {
-    const user = await registerApi(body);
-    setUser(user);
+    const data = await registerApi(body);
+
+    setAccessToken(data.accessToken);
+    setUser(data.user);
   };
 
   const logout = async () => {
-    await logoutApi();
-    setUser(null);
+    try {
+      await logoutApi();
+    } finally {
+      removeAccessToken();
+      setUser(null);
+    }
   };
 
   const value = useMemo(

@@ -1,23 +1,39 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Card, Form, Input, message, Typography } from 'antd';
+import { Button, Card, Form, Input, message, Spin, Typography } from 'antd';
 
 import { useAuth } from '@/shared/providers/AuthProvider';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, isAuth, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && isAuth) {
+      router.replace('/profile');
+    }
+  }, [isAuth, loading, router]);
 
   const onFinish = async (values: { email: string; password: string }) => {
     try {
       await login(values);
+
       message.success('Вход выполнен');
-      router.push('/profile');
+      router.replace('/profile');
     } catch {
       message.error('Неверный email или пароль');
     }
   };
+
+  if (loading || isAuth) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center">
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center">

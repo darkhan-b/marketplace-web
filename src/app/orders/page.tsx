@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Button,
   Card,
@@ -11,13 +11,10 @@ import {
   Statistic,
   Tag,
   Typography,
-} from 'antd';
-import {
-  ShoppingOutlined,
-  WalletOutlined,
-} from '@ant-design/icons';
+} from "antd";
+import { ShoppingOutlined, WalletOutlined } from "@ant-design/icons";
 
-import { getMyOrders } from '@/shared/api/orders';
+import { getMyOrders } from "@/shared/api/orders";
 
 interface OrderItem {
   id: number;
@@ -33,10 +30,38 @@ interface OrderItem {
 interface Order {
   id: number;
   totalPrice: string | number;
-  status: 'PENDING' | 'PAID' | 'CANCELLED';
+  status: "PENDING" | "PAID" | "CANCELLED";
   createdAt: string;
   items: OrderItem[];
 }
+
+const getOrderStatusLabel = (status: Order["status"]) => {
+  switch (status) {
+    case "PAID":
+      return "Оплачен";
+
+    case "CANCELLED":
+      return "Отменён";
+
+    case "PENDING":
+    default:
+      return "Ожидает";
+  }
+};
+
+const getOrderStatusColor = (status: Order["status"]) => {
+  switch (status) {
+    case "PAID":
+      return "green";
+
+    case "CANCELLED":
+      return "red";
+
+    case "PENDING":
+    default:
+      return "blue";
+  }
+};
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -86,10 +111,7 @@ export default function OrdersPage() {
         <List
           dataSource={orders}
           renderItem={(order) => (
-            <Card
-              key={order.id}
-              className="mb-4 rounded-3xl shadow-sm"
-            >
+            <Card key={order.id} className="mb-4 rounded-3xl shadow-sm">
               <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                   <Typography.Title level={4} className="!mb-1">
@@ -101,7 +123,9 @@ export default function OrdersPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <Tag color="blue">{order.status}</Tag>
+                  <Tag color={getOrderStatusColor(order.status)}>
+                    {getOrderStatusLabel(order.status)}
+                  </Tag>
                   <Statistic
                     title="Сумма"
                     value={Number(order.totalPrice)}
@@ -116,7 +140,9 @@ export default function OrdersPage() {
                 renderItem={(item) => (
                   <List.Item>
                     <List.Item.Meta
-                      avatar={<ShoppingOutlined className="text-2xl text-blue-600" />}
+                      avatar={
+                        <ShoppingOutlined className="text-2xl text-blue-600" />
+                      }
                       title={
                         <Link href={`/products/${item.product.id}`}>
                           {item.product.title}
@@ -124,7 +150,7 @@ export default function OrdersPage() {
                       }
                       description={
                         <span>
-                          Количество: {item.quantity} · Цена:{' '}
+                          Количество: {item.quantity} · Цена:{" "}
                           {Number(item.price).toLocaleString()} ₸
                         </span>
                       }

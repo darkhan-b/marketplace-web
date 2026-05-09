@@ -1,13 +1,20 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Card, Form, Input, message, Typography } from 'antd';
+import { Button, Card, Form, Input, message, Spin, Typography } from 'antd';
 
-import { register } from '@/shared/api/auth';
-import { setAccessToken } from '@/shared/lib/token';
+import { useAuth } from '@/shared/providers/AuthProvider';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { register, isAuth, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && isAuth) {
+      router.replace('/profile');
+    }
+  }, [isAuth, loading, router]);
 
   const onFinish = async (values: {
     email: string;
@@ -15,20 +22,26 @@ export default function RegisterPage() {
     name?: string;
   }) => {
     try {
-      const data = await register(values);
+      await register(values);
 
-      setAccessToken(data.accessToken);
       message.success('Регистрация успешна');
-
-      router.push('/profile');
+      router.replace('/profile');
     } catch {
       message.error('Не удалось зарегистрироваться');
     }
   };
 
+  if (loading || isAuth) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-[70vh] items-center justify-center">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md shadow-sm">
         <Typography.Title level={3}>Регистрация</Typography.Title>
 
         <Form layout="vertical" onFinish={onFinish}>
