@@ -1,6 +1,11 @@
 import { api } from './api';
 import type { User } from '../types/user';
 
+export interface AuthResponse {
+  user: User;
+  accessToken: string;
+}
+
 interface RegisterBody {
   email: string;
   password: string;
@@ -12,14 +17,24 @@ interface LoginBody {
   password: string;
 }
 
-export const register = async (body: RegisterBody) => {
-  const { data } = await api.post<User>('/auth/register', body);
+export const register = async (
+  body: RegisterBody,
+): Promise<AuthResponse> => {
+  const { data } = await api.post<AuthResponse>(
+    '/auth/register',
+    body,
+  );
 
   return data;
 };
 
-export const login = async (body: LoginBody) => {
-  const { data } = await api.post<User>('/auth/login', body);
+export const login = async (
+  body: LoginBody,
+): Promise<AuthResponse> => {
+  const { data } = await api.post<AuthResponse>(
+    '/auth/login',
+    body,
+  );
 
   return data;
 };
