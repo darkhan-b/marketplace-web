@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   createContext,
@@ -7,19 +7,16 @@ import {
   useEffect,
   useMemo,
   useState,
-} from 'react';
+} from "react";
 
 import {
   login as loginApi,
   logout as logoutApi,
   register as registerApi,
-} from '@/shared/api/auth';
-import { getMe } from '@/shared/api/users';
-import {
-  removeAccessToken,
-  setAccessToken,
-} from '@/shared/lib/token';
-import type { User } from '@/shared/types/user';
+} from "@/shared/api/auth";
+import { getMe } from "@/shared/api/users";
+import { removeAccessToken, setAccessToken } from "@/shared/lib/token";
+import type { User } from "@/shared/types/user";
 
 interface LoginBody {
   email: string;
@@ -69,17 +66,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (body: LoginBody) => {
-    const data = await loginApi(body);
+    await loginApi(body);
 
-    setAccessToken(data.accessToken);
-    setUser(data.user);
+    const me = await getMe();
+    setUser(me);
   };
 
   const register = async (body: RegisterBody) => {
-    const data = await registerApi(body);
+    await registerApi(body);
 
-    setAccessToken(data.accessToken);
-    setUser(data.user);
+    const me = await getMe();
+    setUser(me);
   };
 
   const logout = async () => {
@@ -111,7 +108,7 @@ export const useAuth = () => {
   const context = useContext(AuthContext);
 
   if (!context) {
-    throw new Error('useAuth must be used inside AuthProvider');
+    throw new Error("useAuth must be used inside AuthProvider");
   }
 
   return context;
