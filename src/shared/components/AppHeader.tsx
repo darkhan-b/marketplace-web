@@ -64,6 +64,22 @@ export const AppHeader = () => {
         auth: true,
         adminOnly: true,
       },
+      {
+        key: "/admin/categories",
+        label: "Админ: категории",
+        icon: <AppstoreOutlined />,
+        href: "/admin/categories",
+        auth: true,
+        adminOnly: true,
+      },
+      {
+        key: "/admin/users",
+        label: "Админ: пользователи",
+        icon: <UserOutlined />,
+        href: "/admin/users",
+        auth: true,
+        adminOnly: true,
+      },
     ];
 
     return items.filter((item) => {

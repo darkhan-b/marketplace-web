@@ -38,6 +38,7 @@ import { getRoleColor, getRoleLabel } from "@/shared/lib/role";
 import { removeAccessToken } from "@/shared/lib/token";
 import type { Product } from "@/shared/types/product";
 import type { User } from "@/shared/types/user";
+import { deleteProduct } from "@/shared/api/products";
 
 interface OrderItem {
   id: number;
@@ -79,6 +80,27 @@ export default function ProfilePage() {
       return sum + Number(order.totalPrice);
     }, 0);
   }, [orders]);
+
+  const handleDeleteProduct = async (productId: number) => {
+    try {
+      await deleteProduct(productId);
+
+      setUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              products: prev.products?.filter(
+                (product) => product.id !== productId,
+              ),
+            }
+          : prev,
+      );
+
+      message.success("Товар удалён");
+    } catch {
+      message.error("Не удалось удалить товар");
+    }
+  };
 
   const loadProfile = async () => {
     try {
@@ -357,7 +379,9 @@ export default function ProfilePage() {
                                       />
                                     }
                                     title={
-                                      <Link href={`/products/${item.product.id}`}>
+                                      <Link
+                                        href={`/products/${item.product.id}`}
+                                      >
                                         {item.product.title}
                                       </Link>
                                     }
@@ -409,7 +433,8 @@ export default function ProfilePage() {
                               <div>
                                 <div>Количество: {item.quantity}</div>
                                 <strong>
-                                  {Number(item.product.price).toLocaleString()} ₸
+                                  {Number(item.product.price).toLocaleString()}{" "}
+                                  ₸
                                 </strong>
                               </div>
                             }
@@ -458,7 +483,8 @@ export default function ProfilePage() {
                                 )}
 
                                 <strong>
-                                  {Number(item.product.price).toLocaleString()} ₸
+                                  {Number(item.product.price).toLocaleString()}{" "}
+                                  ₸
                                 </strong>
                               </div>
                             }
@@ -479,7 +505,17 @@ export default function ProfilePage() {
                       itemLayout="horizontal"
                       dataSource={products}
                       renderItem={(product) => (
-                        <List.Item>
+                        <List.Item
+                          actions={[
+                            <Button
+                              key="delete"
+                              danger
+                              onClick={() => handleDeleteProduct(product.id)}
+                            >
+                              Удалить
+                            </Button>,
+                          ]}
+                        >
                           <List.Item.Meta
                             avatar={
                               <Image
